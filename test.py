@@ -5,12 +5,9 @@ import os
 import json
 import unicodedata
 from pprint import pprint
-#import DbHelper
 
 CLEAR_OLD_DATA = False
 
-#dbCollection = None
-#regexEmail = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
 
 def main():
         #global dbCollection
@@ -70,7 +67,7 @@ def main():
         errorCount = 0
         docs = json.load(open(r'C:\Users\user\Desktop\PTTCrawler\PttJobCrawler\JobRobot_ver.2\JobRobot\tmp\job-1-303.json'))
         print len(docs)
-        for i in range(5120,5121):#len(docs)):
+        for i in range(5493, 5494):#len(docs)):
             print 'Now on %dth file' % (i)
             print '-' * 100
             """判斷issue用"""
@@ -215,10 +212,10 @@ def analyzeContent(doc):
                                 if len(blocks[i][0]) > 1:
                                     for salary in blocks[i]:
                                         #print salary
-                                        print 'you got wrong place'
+                                        #print 'you got wrong place'
                                         print '%s: %s - %s' % (topics[i], salary[0].encode('utf-8'), salary[1].encode('utf-8'))
                                 else:
-                                    print '%s: %s' % (topics[i], blocks[i][0][0].encode('utf-8'))
+                                    print '%s: %s' % (topics[i], int(blocks[i][0][0]))
                             else:
                                 print '%s: %s' % (topics[i], blocks[i].encode('utf-8'))
                                 ##extractedInfo[topics[i]] = blocks[i]
@@ -334,8 +331,10 @@ def analyzeSalary(salary_content):
         '\d{5,}\s{0,}[-－~～]\s{0,}\d{5,}',
          #ＸＸＸＸＸ - ＸＸＸＸＸ
         u'[０-９]{5,}\s{0,}[-－~～][０-９]{5,}', 
+         #xxk ~ xxk
+        u'\d{2,3}[kK]\s{0,}[~-]\s{0,}\d{2,3}[kK]',
          #xx,xxx
-        '\d{2,3},\d{3}',
+        '\d{2,3}[,.]\d{3}',
          #xxxxx
         '\d{5,}',
          #ＸＸ,ＸＸＸ
@@ -353,7 +352,7 @@ def analyzeSalary(salary_content):
          # X萬
         u'\d{1,}[萬ＷｗWw]',
          # xxk
-        u'\d{2,}k',
+        u'\d{2,}[kK]',
          #ＸＸK
         u'[０-９]{2,}[kＫ]'
     ]
@@ -382,7 +381,7 @@ def analyzeSalary(salary_content):
     else:
         for job_salary in findOrder:
             #print job_salary
-            salary_blocks.append([job_salary[0], analyzeSalaryType(salary_type, salary_content, job_salary[1])])
+            salary_blocks.append([job_salary[0], u'%s' % analyzeSalaryType(salary_type, salary_content, job_salary[1])])
             #print salary_blocks
             
     return salary_blocks
@@ -430,19 +429,28 @@ def analyzeSalaryType(salary_type, salary_content, findCount):
     for regex in salary_type:
         #print regex
         regResult = re.search(regex, salary_content)
+        #print regResult
         if regResult == None:
             continue
         regResult = re.findall(regex, salary_content)
-        #print regResult[findCount]
-        return unicodedata.normalize('NFKC', regResult[findCount])
+
+        print regResult
+        #print analyzeSalartNumber(unicodedata.normalize('NFKC', regResult[findCount]))
+        return analyzeSalartNumber(unicodedata.normalize('NFKC', regResult[findCount]))
     return 'Not find Salary Type'
 
 #normalize numbers
 def analyzeSalartNumber(salary):
     chineseNumber = u'[一二三四五六七八九十]'
-    if u',' in salary:
-        salary.replace(u',', '')
-    regResult = re.findall(u'\d{5,}')
+    print 'YEEE'
+    print salary
+    
+    if ',' in salary or '.' in salary:
+        salary = re.sub('[,.]', '', salary)
+        print salary
+
+    regResult = re.findall(u'\d{5,}', salary)
+    print regResult
     #判斷是否兩組數字
     if len(regResult) > 1:
         return (int(regResult[0]) + int(regResult[1])) / 2
@@ -451,27 +459,44 @@ def analyzeSalartNumber(salary):
     else :
         #判斷是否有W
         regResult = re.search(u'[萬ＷｗWw]', salary)
+        print regResult
         temp = 0
         total = 0
-        if regResult != None:
-            #判斷後面是否還有接數字
+        if regResult > 1:
+            #判斷後面是否接國字數字
             if re.search(chineseNumber, salary[regResult.end():]) != None:
+                print '後國字'
                 temp = convertToInt(salary[regResult.end():]) * 1000
+            #判斷後面是否接羅馬數字
+            elif re.search('\d{1}', salary[regResult.end():]) != None:
+                print '後數字'
+                temp = int(salary[regResult.end():]) * 1000
+
             #處理二位數以上的國字
             front_result = re.findall(chineseNumber, salary[:regResult.start()])
-            multi = len(front_result) - 1
-            if len(front_result) > 1:
-                for num in front_result:
-                    total += convertToInt(num) * (10 ** multi)
-                    multi -= 1
+            if len(front_result) > 0:
+                multi = len(front_result) - 1
+                if len(front_result) > 1:
+                    for num in front_result:
+                        total += convertToInt(num) * (10 ** multi)
+                        multi -= 1
+                else:
+                    total = convertToInt(front_result[0])
             else:
-                total = convertToInt(front_result[0])
-            return total * 10000 + temp
+                front_result = re.findall('\d{1,}', salary[:regResult.start()])
+                total = front_result[0]
+            
+            return int(total) * 10000 + temp
+        
         #判斷是否有K
-        regResult = re.search(u'kＫ', salary)
-
+        regResult = re.search(u'\d{2,3}[kK]', salary)
         if regResult != None:
-            if re.search('\d',salary[regResult.end():])
+            front_result = re.findall('\d{2,3}[kK]', salary)
+            if len(front_result) > 1:
+                print front_result
+                return int(((float(re.sub(u'[kK]', '', front_result[0])) + float(re.sub(u'[kK]', '', front_result[1]))) / 2) * 1000)
+            else:
+                return int(float(re.sub(u'[kK]', '', front_result[0])) * 1000)
 
 
 
@@ -479,7 +504,7 @@ def convertToInt(num_string):
 
     if u'一' in num_string:
         return 1
-    if u'二' in num_string:
+    if u'二' in num_string or u'兩' in num_string:
         return 2
     if u'三' in num_string:
         return 3
@@ -512,6 +537,14 @@ if __name__ == "__main__":
 
 
 """
+
+5266
+5352
+5429
+5493
+
+5041
+
 5001
 5006
 5013

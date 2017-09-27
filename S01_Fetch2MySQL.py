@@ -14,7 +14,7 @@ import Config
 
 
 
-sql = "INSERT INTO ptt_articles(title, author, board, content, date, ip, article_uuid) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+sql = "INSERT INTO ptt_articles(title, author, board, content, year, month, ip, article_uuid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
 sql_print = "INSERT INTO ptt_articles(title) VALUES(%s)"
 PTT_BOARD = 'job'
 BACKUP_PATH = Config.BACKUP_PATH
@@ -27,14 +27,15 @@ BACKUP_DATA = False
 def main():
         if EXECUTE_CRAWLER:
                 # Clear tmp directory
-                tmpFiles = [join(TMP_PATH,f) for f in os.listdir(TMP_PATH) if isfile(join(TMP_PATH, f))]
-                for file in tmpFiles:
-                        print TMP_PATH
-                        os.remove(file)
+                #tmpFiles = [join(TMP_PATH,f) for f in os.listdir(TMP_PATH) if isfile(join(TMP_PATH, f))]
+                #for file in tmpFiles:
+                #        print TMP_PATH
+                #        os.remove(file)
 
                 firstPage = 1
                 print "Start from page %d" % (firstPage)
-                doCrawler(firstPage, 3)
+                #doCrawler(firstPage, -1)
+                doAnalyze()
                 import2SQL(IMPORT_CHECK_EXISTED)
 
                 #print "Last page number is %d" % (int(Util.readKV('part_time_lastPage')))
@@ -67,6 +68,14 @@ def doCrawler(pageStart, pageEnd):
                         copyfile(newFullpath, join(BACKUP_PATH, newFilename))
                 os.remove(fullPath)
 
+def doAnalyze():
+    command = "cd %s && python ../S03_AnalysisContent.py" % (os.path.basename(TMP_PATH))
+    print TMP_PATH
+    #command = "python pttcrawler.py -b %s -i %d %d" % (PTT_BOARD, pageStart, pageEnd)
+    print command
+    os.system(command)
+
+
 def import2SQL(checkExsisted):
         db = pymysql.connect(host=Config.DB_HOST, user=Config.DB_USER,
                 port=Config.DB_PORT, password=Config.DB_PASSWD,
@@ -75,8 +84,7 @@ def import2SQL(checkExsisted):
         cursor = db.cursor()
         regex = re.compile(r".+_[0-9]+_parsed\.json")
         jsonFiles = [f for f in os.listdir(TMP_PATH) if isfile(join(TMP_PATH, f)) and regex.match(f)]
-        regex = re.compile(r"[0-9]+")
-
+        print jsonFiles
 
         #tmpCollectionName = DbHelper.COLLECTION + "_tmp"
 
@@ -87,23 +95,28 @@ def import2SQL(checkExsisted):
                     if 'error' in data:
                         print 'error'
                     else:
+                        #print data
+                        date = format_date(data['date'])
+                        #year = 'NULL' if date == None else date[4]
+                        #month = 'NULL' if date == None else month(date[1]) 
                         cursor.execute(sql, (data['article_title'],
                              data['author'],
                              data['board'],
                              data['content'],
-                             format_date(data['date']),
+                             'NULL' if date == None else date[4],
+                             'NULL' if date == None else month(date[1]),
                              data['ip'],
                              data['article_id'] ))
                         print sql_print % (data['article_title'])
                 os.remove(fullPath)
-        #db.commit()
+        db.commit()
 
 def format_date(datetime):
     if datetime == '':
         return None
     temp = datetime.split(' ')
-    format_datetime = '%s-%s-%s %s' %(temp[4], month(temp[1]), temp[2], temp[3])
-    return format_datetime
+    #format_datetime = '%s-%s-%s %s' %(temp[4], month(temp[1]), temp[2], temp[3])
+    return temp
 
 def month(month):
     return{

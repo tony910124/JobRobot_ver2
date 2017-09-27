@@ -164,9 +164,18 @@ def parse(link, article_id, board):
     content = re.sub(r'([\s\n])+', ' ', content)
 
     #----8/22 coding---
-    emails = main_content.find_all("a", {"class" : "__cf_email__"})
+    emails = main_content.find_all("a", class_ = '__cf_email__')
+    #print len(emails)
+    #tmp = '  ||'
     for email in emails:
-        content = re.sub(r'\[email+.+\]\]\> \*\/', deCFEmail(email["data-cfemail"]), content)
+        #tmp += deCFEmail(email["data-cfemail"]) + '||  '
+        regResult = re.findall('\[ema.+.tected\]', content)
+        if len(regResult) > 1:
+            tmp = re.find('\[ema.+.tected\]', content)
+            content = re.sub('\[ema.+.tected\]', deCFEmail(email['data-cfemail']), content[:tmp.end()])
+        else:
+            content = re.sub('\[ema.+.tected\]', deCFEmail(email['data-cfemail']), content)
+    #content += str(len(regResult)) + deCFEmail(email['data-cfemail'])
     #------------------
 
 
@@ -232,9 +241,9 @@ def store(filename, data, mode):
 
 def deCFEmail(decodedEmail):
     r = int(decodedEmail[:2],16)
-    email = ''.join([chr(int(decodedEmail[i:i+2], 16) ^ r) for i in range(2, len(decodedEmail), 2)])
-    print email
-    return email
+    EMAIL = ''.join([chr(int(decodedEmail[i:i+2], 16) ^ r) for i in range(2, len(decodedEmail), 2)])
+    #print EMAIL.encode('utf-8')
+    return EMAIL
 
 if __name__ == '__main__':
     crawler()

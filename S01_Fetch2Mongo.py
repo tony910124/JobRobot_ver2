@@ -29,7 +29,7 @@ def main():
 		firstPage = int(Util.readKV('part_time_lastPage'))
 		print "Start from page %d" % (firstPage)
 		doCrawler(firstPage, -1)
-		import2Mongo(IMPORT_CHECK_EXISTED)
+		#import2Mongo(IMPORT_CHECK_EXISTED)
 
 		print "Last page number is %d" % (int(Util.readKV('part_time_lastPage')))
 
@@ -56,7 +56,7 @@ def doCrawler(pageStart, pageEnd):
 		lines[len(lines) - 1] = ']'
 		file.close()
 
-		newFilename = "%s_%d_parsed.json" % (filename[:-5], int(time.time()))
+		newFilename = u"%s_%d_parsed.json" % (filename[:-5], int(time.time()))
 		newFullpath = join(TMP_PATH, newFilename)
 		file = open(newFullpath, 'w')
 		file.writelines(lines)
