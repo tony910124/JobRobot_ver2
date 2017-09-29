@@ -12,7 +12,16 @@ from os import sep
 from pprint import pprint
 #import DbHelper
 
+
+
+db = pymysql.connect(host=Config.DB_HOST, user=Config.DB_USER,
+                port=Config.DB_PORT, password=Config.DB_PASSWD,
+                db=Config.DB_NAME, charset='utf8')
+cursor = db.cursor()
+
 CLEAR_OLD_DATA = False
+
+
 #插入依順序是 (article_id, 公司名稱, 公司職缺, 工作內容, 徵求條件, 工作地點, 工作時間, 月休, 公司福利, 薪水, 需要人數, 聯絡人, 期限, 備註)
 sql = "INSERT INTO ptt_content_analyze(article_id,\
                                        corporation,\
@@ -84,19 +93,13 @@ def main():
         u'道歉啟事'
     ]
 
-    if CLEAR_OLD_DATA:
-        dbCollection.update_many(
-                {'extractedInfo': {'$exists': True}},
-                {'$unset': {'extractedInfo':""}}, False)
-        print 'All extractedInfo deleted.'
     errorCount = 0
     regex = re.compile(r".+_[0-9]+_parsed\.json")
     file = [f for f in os.listdir(TMP_PATH) if isfile(join(TMP_PATH, f)) and regex.match(f)]
-    print TMP_PATH
+    #print TMP_PATH
 
-    #docs = json.load(open('./tmp/job-1-303.json'))
     for filename in file:
-        print len(file)
+        #print len(file)
 
         """判斷issue用"""
         fullPath = join(TMP_PATH, filename)
@@ -115,18 +118,18 @@ def main():
                             #print 'FKFKFK'
 
                             if issue in docs[i]['article_title']:
-                                print '\n\n' + '|*'*50
+                                #print '\n\n' + '|*'*50
                                 #print docs[i]['article_id']+'\t'+docs[i]['article_title']
-                                print "\t\t%s - %s" % (docs[i]['article_id'], docs[i]['article_title'])
-                                print '|*'*50 + '\n\n'
+                                #print "\t\t%s - %s" % (docs[i]['article_id'], docs[i]['article_title'])
+                                #print '|*'*50 + '\n\n'
                                 error = True
                                 break
                         if error:
                             error = False
                             continue
-                        #print 'YEEE'
-                        print "%s - %s\n" % (docs[i]['article_id'], docs[i]['article_title'])
+                        #print "%s - %s\n" % (docs[i]['article_id'], docs[i]['article_title'])
                         #print docs[i]
+                        #analyzeContent(docs[i])
                         errorCount += analyzeContent(docs[i])
                         break
             except Exception as e:
@@ -135,10 +138,13 @@ def main():
                 if 'error' in docs[i]:
                     print u'error'
                 else:
+                    print '%s' % (e)
                     #print docs[i]['article_id'].encode('utf-8')+'\t'+docs[i][article_title].encode('utf-8')
-                    print "error on %s - %s\n" % (docs[i]['article_id'], docs[i]['article_title'])
+                    print "ERROR on %s -\n" % (docs[i]['article_id'])
+                    raise
                 print '|*'*30 + '|'
-
+    db.commit()
+    db.close()
     print "Finished with %d article(s) having error." % (errorCount)
 
 
@@ -193,7 +199,7 @@ def analyzeContent(doc):
                             foundCount += 1
                             break
             if regResult == None:
-                    print "%s: unable to find block: '%s'\n" % (doc['article_id'], blocksTitle[i][0])
+                    #print "%s: unable to find block: '%s'\n" % (doc['article_id'], blocksTitle[i][0])
                     blankBlocks.append('')
                     hasError = True
                     continue
@@ -222,7 +228,7 @@ def analyzeContent(doc):
     blocks[8] = analyzeSalary(blocks[8])
     
     tmp = Clasify.getJobType(blocks[2])
-    blocks.insert( 3, tmp)
+    blocks.insert( 2, tmp)
     #print blocks[3]
     updateToSQL(blocks, doc['article_id'])
     
@@ -448,8 +454,8 @@ def analyzeSalaryType(salary_type, salary_content, findCount):
             continue
         regResult = re.findall(regex, salary_content)
         #print regResult
-        return analyzeSalartNumber(unicodedata.normalize('NFKC', regResult[findCount]))
-    return 'Not find Salary Type'
+        return analyzeSalartNumber(unicodedata.normalize('NFKC', regResult[findCount] if len(regResult) < findCount else regResult[0]))
+    return None
 
 #normalize numbers
 def analyzeSalartNumber(salary):
@@ -533,11 +539,9 @@ def convertToInt(num_string):
     return num_string
 
 def updateToSQL(blocks, article_id):
-    db = pymysql.connect(host=Config.DB_HOST, user=Config.DB_USER,
-                port=Config.DB_PORT, password=Config.DB_PASSWD,
-                db=Config.DB_NAME, charset='utf8')
+    
 
-    cursor = db.cursor()
+    
     try:
         cursor.execute(sql, (article_id,
                              None if blocks[0] == '' else blocks[0], 
@@ -549,25 +553,29 @@ def updateToSQL(blocks, article_id):
                              None if blocks[6] == '' else blocks[6],
                              None if blocks[7] == '' else blocks[7], 
                              None if blocks[8] == '' else blocks[8],
-                             None if blocks[9][0][0] == '' else int(blocks[9][0][0]), 
+                             None if blocks[9][0][0] == '' or blocks[9][0][0] == None \
+                                    else \
+                                        str(blocks[9][0][-1]).decode('utf-8'), 
                              None if blocks[10] == '' else blocks[10],
                              None if blocks[11] == '' else blocks[11], 
                              None if blocks[12] == '' else blocks[12],
                              None if blocks[13] == '' else blocks[13], 
                              ))
-        print sql_print % (blocks[0])
+        print sql_print % (article_id)
     except Exception as e:
         print "\t\t" + "|*" * 50 + "|"
+        #print blocks[3]
+        #print blocks[9][0][0]
         print '%s' % (e)
-        print "\t\t\t\tSQL UPLOAD FAIL ON : %s" % (blocks[0])
+        print "\t\t\t\tSQL UPLOAD FAIL ON : %s" % (article_id)
         print "\t\t" + "|*" * 50 + "|"
 
-    db.commit()
+    
 
 
 if __name__ == "__main__":
-        try:
-           input = raw_input
-        except NameError:
-           pass
-        main()  
+    try:
+        input = raw_input
+    except NameError:
+        pass
+    main()

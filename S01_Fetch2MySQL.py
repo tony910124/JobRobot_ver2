@@ -11,6 +11,8 @@ import Config
 
 
 
+sql_update = "UPDATE ptt_articles SET year = %s WHERE article_uuid = %s"
+sql_update_print = "UPDATE ptt_articles SET year = %s WHERE article_uuid = %s"
 
 
 
@@ -22,19 +24,19 @@ TMP_PATH = Config.TMP_PATH
 
 EXECUTE_CRAWLER = True
 IMPORT_CHECK_EXISTED = True
-BACKUP_DATA = False
+BACKUP_DATA = True
 
 def main():
         if EXECUTE_CRAWLER:
                 # Clear tmp directory
-                #tmpFiles = [join(TMP_PATH,f) for f in os.listdir(TMP_PATH) if isfile(join(TMP_PATH, f))]
-                #for file in tmpFiles:
-                #        print TMP_PATH
-                #        os.remove(file)
+                tmpFiles = [join(TMP_PATH,f) for f in os.listdir(TMP_PATH) if isfile(join(TMP_PATH, f))]
+                for file in tmpFiles:
+                        print TMP_PATH
+                        os.remove(file)
 
                 firstPage = 1
                 print "Start from page %d" % (firstPage)
-                #doCrawler(firstPage, -1)
+                doCrawler(firstPage, -1)
                 doAnalyze()
                 import2SQL(IMPORT_CHECK_EXISTED)
 
@@ -66,7 +68,7 @@ def doCrawler(pageStart, pageEnd):
                 file.close()
                 if BACKUP_DATA:
                         copyfile(newFullpath, join(BACKUP_PATH, newFilename))
-                os.remove(fullPath)
+                #os.remove(fullPath)
 
 def doAnalyze():
     command = "cd %s && python ../S03_AnalysisContent.py" % (os.path.basename(TMP_PATH))
@@ -97,24 +99,37 @@ def import2SQL(checkExsisted):
                     else:
                         #print data
                         date = format_date(data['date'])
+                        
+                        #IMPORT TO SERVER
+                        
                         #year = 'NULL' if date == None else date[4]
                         #month = 'NULL' if date == None else month(date[1]) 
                         cursor.execute(sql, (data['article_title'],
                              data['author'],
                              data['board'],
                              data['content'],
-                             'NULL' if date == None else date[4],
-                             'NULL' if date == None else month(date[1]),
+                             None if date == None else None if date == None or len(date[-1]) > 4 else date[-1],
+                             None if date == None else month(date[1]),
                              data['ip'],
                              data['article_id'] ))
                         print sql_print % (data['article_title'])
+                        
+                        """
+                        #UPDATE TO SERVER
+                        cursor.execute(sql_update, (None if date == None or len(date[-1]) > 4 else date[-1], data['article_id']))
+                        print sql_update_print % (None if date == None or len(date[-1]) > 4 else date[-1], data['article_id'])
+                        """
                 os.remove(fullPath)
         db.commit()
+        db.close()
 
 def format_date(datetime):
     if datetime == '':
         return None
     temp = datetime.split(' ')
+    if '' in temp:
+        temp.remove('')
+
     #format_datetime = '%s-%s-%s %s' %(temp[4], month(temp[1]), temp[2], temp[3])
     return temp
 

@@ -28,6 +28,3 @@ def getClasifyType():
 	#print clasify
 	f.close()
 	return clasify
-
-if __name__ == "__main__":
-    main()
