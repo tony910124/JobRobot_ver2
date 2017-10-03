@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
-import codecs
 import re
+import codecs
+import Config
+
 
 def getJobType(job):
 	clasifyType = getClasifyType()
@@ -19,12 +21,11 @@ def getJobType(job):
 
 def getClasifyType():
 	clasify = []
-	f = codecs.open('clasify.txt', 'r', encoding = 'utf-8')
+	f = codecs.open('%s/clasify.txt' % Config.scriptPath, 'r', encoding = 'utf-8')
 	for line in f:
 		tmp = line.split('  ')
 		clasify += [tmp]
 		if line == '':
 			break
-	#print clasify
 	f.close()
 	return clasify

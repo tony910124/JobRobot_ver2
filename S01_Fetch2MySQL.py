@@ -17,7 +17,9 @@ sql_update_print = "UPDATE ptt_articles SET year = %s WHERE article_uuid = %s"
 
 
 sql = "INSERT INTO ptt_articles(title, author, board, content, year, month, ip, article_uuid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-sql_print = "INSERT INTO ptt_articles(title) VALUES(%s)"
+sql_print = "INSERT INTO ptt_articles(id) VALUES(%s)"
+
+
 PTT_BOARD = 'job'
 BACKUP_PATH = Config.BACKUP_PATH
 TMP_PATH = Config.TMP_PATH
@@ -29,19 +31,24 @@ BACKUP_DATA = True
 def main():
         if EXECUTE_CRAWLER:
                 # Clear tmp directory
-                tmpFiles = [join(TMP_PATH,f) for f in os.listdir(TMP_PATH) if isfile(join(TMP_PATH, f))]
-                for file in tmpFiles:
-                        print TMP_PATH
-                        os.remove(file)
+                #tmpFiles = [join(TMP_PATH,f) for f in os.listdir(TMP_PATH) if isfile(join(TMP_PATH, f))]
+                #for file in tmpFiles:
+                #        print TMP_PATH
+                #        os.remove(file)
 
                 firstPage = 1
                 print "Start from page %d" % (firstPage)
-                doCrawler(firstPage, -1)
-                doAnalyze()
-                import2SQL(IMPORT_CHECK_EXISTED)
+                #doCrawler(firstPage, -1)
+                #import2SQL(IMPORT_CHECK_EXISTED)
+                #doAnalyze()
+                importComment2SQL()
 
                 #print "Last page number is %d" % (int(Util.readKV('part_time_lastPage')))
 
+        tmpFiles = [join(TMP_PATH,f) for f in os.listdir(TMP_PATH) if isfile(join(TMP_PATH, f))]
+        for file in tmpFiles:
+                #print TMP_PATH
+                os.remove(file)
         print "Finished."
 
 def doCrawler(pageStart, pageEnd):
@@ -72,11 +79,14 @@ def doCrawler(pageStart, pageEnd):
 
 def doAnalyze():
     command = "cd %s && python ../S03_AnalysisContent.py" % (os.path.basename(TMP_PATH))
-    print TMP_PATH
-    #command = "python pttcrawler.py -b %s -i %d %d" % (PTT_BOARD, pageStart, pageEnd)
     print command
     os.system(command)
+    
 
+def importComment2SQL():
+    command = "cd %s && python ../ImportComment2SQL.py" % (os.path.basename(TMP_PATH))
+    print command
+    os.system(command)
 
 def import2SQL(checkExsisted):
         db = pymysql.connect(host=Config.DB_HOST, user=Config.DB_USER,
@@ -100,10 +110,8 @@ def import2SQL(checkExsisted):
                         #print data
                         date = format_date(data['date'])
                         
-                        #IMPORT TO SERVER
-                        
-                        #year = 'NULL' if date == None else date[4]
-                        #month = 'NULL' if date == None else month(date[1]) 
+
+                        #IMPORT TO SERVER 
                         cursor.execute(sql, (data['article_title'],
                              data['author'],
                              data['board'],
@@ -112,14 +120,15 @@ def import2SQL(checkExsisted):
                              None if date == None else month(date[1]),
                              data['ip'],
                              data['article_id'] ))
-                        print sql_print % (data['article_title'])
+                        print sql_print % (data['article_id'])
+                        
                         
                         """
                         #UPDATE TO SERVER
                         cursor.execute(sql_update, (None if date == None or len(date[-1]) > 4 else date[-1], data['article_id']))
                         print sql_update_print % (None if date == None or len(date[-1]) > 4 else date[-1], data['article_id'])
                         """
-                os.remove(fullPath)
+                #os.remove(fullPath)
         db.commit()
         db.close()
 

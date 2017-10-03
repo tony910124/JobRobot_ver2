@@ -21,6 +21,9 @@ cursor = db.cursor()
 
 CLEAR_OLD_DATA = False
 
+#corporation list
+corporation = []
+
 
 #插入依順序是 (article_id, 公司名稱, 公司職缺, 工作內容, 徵求條件, 工作地點, 工作時間, 月休, 公司福利, 薪水, 需要人數, 聯絡人, 期限, 備註)
 sql = "INSERT INTO ptt_content_analyze(article_id,\
@@ -232,6 +235,11 @@ def analyzeContent(doc):
     #print blocks[3]
     updateToSQL(blocks, doc['article_id'])
     
+    #check the corporation has been already in list
+    if blocks[1] not in corporation:
+        corporation += blocks[1]
+    
+
     #print the content in blocks (for debugging)
     """
     for i in range(len(blocks)):
