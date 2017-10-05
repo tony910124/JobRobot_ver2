@@ -2,6 +2,7 @@
 import os
 import Config
 import pymysql
+import codecs
 
 
 db = pymysql.connect(host=Config.DB_HOST, user=Config.DB_USER,
@@ -15,11 +16,19 @@ sql = "SELECT ptt_articles.year, ptt_content_analyze.work_type, ptt_content_anal
        WHERE ptt_articles.article_uuid = ptt_content_analyze.article_id"
 
 def main():
-    cursor.execute(sql)
-    result = cursor.fetchall()
-    for row in result:
-        print '%s, %s, %s' % (row[0], row[1], row[2])
-
+    file = codecs.open('Average_Salary.txt', 'w', 'utf-8')
+    try:
+        print 'YEEE'
+        cursor.execute(sql)
+        result = cursor.fetchall()
+        print len(result)
+        for row in result:
+            print row
+            file.write('%s,%s,%d\n' % (row[0], row[1], row[2]))
+            print '%s, %s, %s' % (row[0], row[1], row[2])
+    except Exception as e:
+        print e
+    file.close()
 
 if __name__ == "__main__":
     main()

@@ -24,6 +24,10 @@ CLEAR_OLD_DATA = False
 #corporation list
 corporation = []
 
+UPDATE_DATA = False
+sql_update = "UPDATE ptt_content_analyze SET work_type = %s WHERE article_id = %s"
+sql_update_print = "UPDATE ptt_content_analyze(id) -- %s"
+
 
 #插入依順序是 (article_id, 公司名稱, 公司職缺, 工作內容, 徵求條件, 工作地點, 工作時間, 月休, 公司福利, 薪水, 需要人數, 聯絡人, 期限, 備註)
 sql = "INSERT INTO ptt_content_analyze(article_id,\
@@ -230,15 +234,17 @@ def analyzeContent(doc):
     blocks = doubleCheck(blocksTitle, blocks)
     blocks[8] = analyzeSalary(blocks[8])
     
-    tmp = Clasify.getJobType(blocks[2])
+    tmp = Clasify.getJobType(blocks[1])
     blocks.insert( 2, tmp)
     #print blocks[3]
     updateToSQL(blocks, doc['article_id'])
     
+    """
+    test
     #check the corporation has been already in list
     if blocks[1] not in corporation:
         corporation += blocks[1]
-    
+    """
 
     #print the content in blocks (for debugging)
     """
@@ -411,10 +417,7 @@ def analyzeSalary(salary_content):
             #print job_salary
             salary_blocks.append([job_salary[0], u'%s' % analyzeSalaryType(salary_type, salary_content, job_salary[1])])
             #print salary_blocks
-            
     return salary_blocks
-
-
 
 
 #check the order
@@ -547,29 +550,30 @@ def convertToInt(num_string):
     return num_string
 
 def updateToSQL(blocks, article_id):
-    
-
-    
     try:
-        cursor.execute(sql, (article_id,
-                             None if blocks[0] == '' else blocks[0], 
-                             None if blocks[1] == '' else blocks[1],
-                             None if blocks[2] == '' else blocks[2], 
-                             None if blocks[3] == '' else blocks[3],
-                             None if blocks[4] == '' else blocks[4],
-                             None if blocks[5] == '' else blocks[5], 
-                             None if blocks[6] == '' else blocks[6],
-                             None if blocks[7] == '' else blocks[7], 
-                             None if blocks[8] == '' else blocks[8],
-                             None if blocks[9][0][0] == '' or blocks[9][0][0] == None \
-                                    else \
-                                        str(blocks[9][0][-1]).decode('utf-8'), 
-                             None if blocks[10] == '' else blocks[10],
-                             None if blocks[11] == '' else blocks[11], 
-                             None if blocks[12] == '' else blocks[12],
-                             None if blocks[13] == '' else blocks[13], 
-                             ))
-        print sql_print % (article_id)
+        if UPDATE_DATA:
+            cursor.execute(sql_update, (None if blocks[2] == '' else blocks[2], article_id))
+            print sql_update_print % article_id
+        else:
+            cursor.execute(sql, (article_id,
+                                 None if blocks[0] == '' else blocks[0], 
+                                 None if blocks[1] == '' else blocks[1],
+                                 None if blocks[2] == '' else blocks[2], 
+                                 None if blocks[3] == '' else blocks[3],
+                                 None if blocks[4] == '' else blocks[4],
+                                 None if blocks[5] == '' else blocks[5], 
+                                 None if blocks[6] == '' else blocks[6],
+                                 None if blocks[7] == '' else blocks[7], 
+                                 None if blocks[8] == '' else blocks[8],
+                                 None if blocks[9][0][0] == '' or blocks[9][0][0] == None \
+                                        else \
+                                            str(blocks[9][0][-1]).decode('utf-8'), 
+                                 None if blocks[10] == '' else blocks[10],
+                                 None if blocks[11] == '' else blocks[11], 
+                                 None if blocks[12] == '' else blocks[12],
+                                 None if blocks[13] == '' else blocks[13], 
+                                 ))
+            print sql_print % (article_id)
     except Exception as e:
         print "\t\t" + "|*" * 50 + "|"
         #print blocks[3]
