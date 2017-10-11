@@ -31,16 +31,16 @@ BACKUP_DATA = True
 def main():
         if EXECUTE_CRAWLER:
                 # Clear tmp directory
-                #tmpFiles = [join(TMP_PATH,f) for f in os.listdir(TMP_PATH) if isfile(join(TMP_PATH, f))]
-                #for file in tmpFiles:
-                #        print TMP_PATH
-                #        os.remove(file)
+                tmpFiles = [join(TMP_PATH,f) for f in os.listdir(TMP_PATH) if isfile(join(TMP_PATH, f))]
+                for file in tmpFiles:
+                        print TMP_PATH
+                        os.remove(file)
 
                 firstPage = 1
                 print "Start from page %d" % (firstPage)
-                #doCrawler(firstPage, -1)
-                #import2SQL(IMPORT_CHECK_EXISTED)
-                #doAnalyze()
+                doCrawler(firstPage, -1)
+                import2SQL(IMPORT_CHECK_EXISTED)
+                doAnalyze()
                 importComment2SQL()
 
                 #print "Last page number is %d" % (int(Util.readKV('part_time_lastPage')))

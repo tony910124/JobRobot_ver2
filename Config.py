@@ -12,6 +12,8 @@ DB = 'workfair-jobrobot'
 COLLECTION = 'ptt_part_times'
 BACKUP_PATH = '%s/RawData' % scriptPath
 TMP_PATH = '%s/tmp' % scriptPath
+SPARK_AVERAGE_PATH = '%s/Spark/Result/Average' % scriptPath
+SPARK_JOB_PATH = '%s/Spark/Result/Job' % scriptPath
 
 
 #S03_AnalyisisContent
